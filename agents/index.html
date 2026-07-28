@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>AIエージェントカタログ | plus-lineteam</title>
+<style>
+  /* ===== ベース ===== */
+  :root {
+    --bg: #faf9f7;
+    --card: #ffffff;
+    --border: #e8e5e0;
+    --text: #2b2825;
+    --sub: #8a857e;
+    --accent: #6b5cd6;
+    /* バッジ色 */
+    --b-auto: #6b5cd6;    /* 自動(cron) 紫 */
+    --b-daily: #2f7dd1;   /* 毎日 青 */
+    --b-weekly: #1a9e8f;  /* 毎週/毎月 緑 */
+    --b-manual: #9a948c;  /* 手動 グレー */
+    --b-dep: #d1493f;     /* 非推奨 赤 */
+    --b-parts: #c07f2f;   /* 内部部品 オレンジ */
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17161a;
+      --card: #201f24;
+      --border: #34323a;
+      --text: #e8e6e3;
+      --sub: #918c95;
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Hiragino Sans", "Yu Gothic", -apple-system, sans-serif;
+    line-height: 1.6;
+    padding: 40px 24px 80px;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  /* ===== ヘッダー ===== */
+  header { margin-bottom: 12px; }
+  h1 { font-size: 26px; font-weight: 700; letter-spacing: .02em; }
+  .lead { color: var(--sub); font-size: 13px; margin-top: 6px; }
+  .stats { display: flex; gap: 24px; margin: 22px 0 36px; flex-wrap: wrap; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 22px; }
+  .stat b { font-size: 22px; display: block; }
+  .stat span { font-size: 11px; color: var(--sub); }
+
+  /* ===== セクション ===== */
+  section { margin-bottom: 40px; }
+  .sec-title {
+    font-size: 12px; font-weight: 700; color: var(--sub);
+    letter-spacing: .12em; margin-bottom: 12px;
+    padding-left: 2px;
+  }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 10px; }
+
+  /* ===== カード ===== */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .card-head .arrow { color: var(--sub); font-size: 11px; }
+  .card-head .name { font-weight: 700; font-size: 14px; }
+  .badge {
+    font-size: 10px; font-weight: 700; color: #fff;
+    padding: 2px 7px; border-radius: 4px; white-space: nowrap; margin-left: auto;
+  }
+  .desc { font-size: 12px; color: var(--text); opacity: .85; margin-bottom: 7px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip {
+    font-size: 10.5px; color: var(--sub);
+    border: 1px solid var(--border); border-radius: 5px;
+    padding: 1px 7px; background: transparent;
+  }
+  footer { margin-top: 50px; font-size: 11px; color: var(--sub); text-align: center; }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>AIエージェントカタログ</h1>
+    <p class="lead">LINEチームで稼働中のエージェント・自動化・スキルの全量棚卸し。トリガー → 処理 → 出力先が1枚で見える。</p>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><b id="st-total">—</b><span>総数</span></div>
+    <div class="stat"><b id="st-auto">—</b><span>cron自動巡回</span></div>
+    <div class="stat"><b id="st-skill">—</b><span>スキル</span></div>
+    <div class="stat"><b id="st-role">—</b><span>ロール（人格）</span></div>
+    <div class="stat"><b id="st-dep">—</b><span>整理候補</span></div>
+  </div>
+
+  <div id="catalog"></div>
+
+  <footer>
+    plus-lineteam AI org / 更新はカタログのdata配列を編集してpush　·　<a href="../winut/">Winut操作マニュアル</a>
+  </footer>
+</div>
+
+<script>
+// ==== バッジ定義 ====
+const BADGES = {
+  auto:   { label: "自動",     color: "var(--b-auto)" },
+  daily:  { label: "毎日",     color: "var(--b-daily)" },
+  weekly: { label: "毎週",     color: "var(--b-weekly)" },
+  monthly:{ label: "毎月",     color: "var(--b-weekly)" },
+  manual: { label: "手動",     color: "var(--b-manual)" },
+  parts:  { label: "内部部品", color: "var(--b-parts)" },
+  dep:    { label: "整理候補", color: "var(--b-dep)" },
+};
+
+// ==== カタログ本体（ここを編集して更新する）====
+const CATALOG = [
+  {
+    section: "自動巡回（cronで毎日勝手に動く）",
+    items: [
+      { name: "朝スタンドアップ", badge: "auto", time: "毎日 9:00",
+        desc: "GOAL進捗・全ジャンル診断・今日やることを整理してターミナル自動起動で報告",
+        chips: ["「朝レポ」「おはよう」でも手動起動", "→ チャット報告"] },
+      { name: "昼ミッドデイ", badge: "auto", time: "毎日 13:00",
+        desc: "朝からの変動分だけを簡潔に報告",
+        chips: ["「昼レポ」でも手動起動", "→ チャット報告"] },
+      { name: "夕レポ", badge: "auto", time: "毎日 18:00",
+        desc: "1日の総括・朝夕の変化・明日やることを報告",
+        chips: ["「夕レポ」「おつかれ」でも手動起動", "→ チャット報告"] },
+      { name: "データ更新検知", badge: "auto", time: "12〜15時 / 15分おき",
+        desc: "昨日分データのスプシ反映を検知したら通知してスタンドアップを自動起動",
+        chips: ["検知するまで15分間隔で巡回", "→ 通知 + 自動レポート"] },
+      { name: "日次リサーチャー", badge: "auto", time: "毎日 10:07",
+        desc: "新規チャネル4軸（note収益化・X自動化・導線・競合）をリサーチしてDB追記 → HTMLレポート生成 → git push",
+        chips: ["S/A級の一次情報を8割以上", "→ リサーチHub HTML"] },
+      { name: "競合順位チェック", badge: "auto", time: "毎日 9:00",
+        desc: "rank-checkerが競合の検索順位を自動取得して記録",
+        chips: ["→ 競合データCSV蓄積"] },
+      { name: "BQ→スプシ同期", badge: "auto", time: "毎日 17:30",
+        desc: "BigQueryの日次データをスプレッドシートへ自動転記",
+        chips: ["データ収集の自立復旧ライン", "→ スプシ"] },
+      { name: "公開URL検知 + 入稿キュー", badge: "auto", time: "9〜19時 / 毎時",
+        desc: "記事スプシを監視 → 新規公開URLを検知 → 診断割当 + PU入稿要否を自動判定して追記",
+        chips: ["PU設置は実測データで判定", "→ 検知タブに自動追記"] },
+      { name: "URL再チェック", badge: "auto", time: "毎日 7:40",
+        desc: "検知済みURLのメタ情報を再取得して補完",
+        chips: ["→ 検知タブを更新"] },
+      { name: "PU設置状況シート", badge: "auto", time: "毎日 7:15",
+        desc: "PUの実測データから設置状況シートを自動更新",
+        chips: ["→ スプシ"] },
+      { name: "記事台帳", badge: "auto", time: "毎日 7:20 / 17:45",
+        desc: "GTM API × BQ結合で記事台帳を自動生成",
+        chips: ["→ consoleページ + スプシ"] },
+    ]
+  },
+  {
+    section: "レポート・振り返り（スキル）",
+    items: [
+      { name: "weekly-report", badge: "weekly", time: "",
+        desc: "週次レポート。データ収集 → 突き合わせ → スプシ記入 → 総括コメント生成",
+        chips: ["「週レポ」「週次報告」", "→ 週次スプシ + 社長シート"] },
+      { name: "weekly-evolve", badge: "weekly", time: "毎週月曜",
+        desc: "AIシステムの週次進化レビュー。学びの統合・knowledge更新・改善提案",
+        chips: ["「週次振り返り」", "→ knowledge/ 更新"] },
+      { name: "monthly-retro", badge: "monthly", time: "毎月1日",
+        desc: "月次振り返り。GOAL進捗・knowledge掃除・アーキテクチャレビュー・翌月計画",
+        chips: ["「月次振り返り」", "→ レビューレポート"] },
+      { name: "session-wrap", badge: "manual", time: "",
+        desc: "セッション終了時に学びを抽出してメモリへ自動書き込み。聞かれなくてもCEOが勝手にやる",
+        chips: ["「振り返り」「まとめて」", "→ memory.md / knowledge/"] },
+      { name: "task-log", badge: "manual", time: "",
+        desc: "タスク進捗をmemory.mdに記録してセッション間で忘れない",
+        chips: ["「ここまで」「中断」「続きどこから」", "→ memory.md"] },
+    ]
+  },
+  {
+    section: "データ・分析",
+    items: [
+      { name: "cio-data", badge: "parts", time: "",
+        desc: "全データ分析の入口ゲート。補完済み統一データを返す。他スキルから参照必須",
+        chips: ["全分析はここを必ず通す", "→ 統一データ"] },
+      { name: "data-verify", badge: "parts", time: "",
+        desc: "数字をrenに出す前の検証ゲート。前提・レコード完全性・異常値をチェック",
+        chips: ["データ受領後に自動発動", "→ 検証済み数字のみ報告"] },
+      { name: "scan", badge: "manual", time: "",
+        desc: "GOAL逆算で次の攻め先を決める。GAP算出 → ジャンル×記事レベルで優先順位付き提示",
+        chips: ["「次どこ」「どこ攻める」", "→ 優先順位リスト"] },
+      { name: "effect-judge", badge: "manual", time: "",
+        desc: "実施済み施策の効果判定。基準クリアか否かを判定",
+        chips: ["「/effect-judge」", "→ 判定レポート"] },
+      { name: "coverage-check", badge: "manual", time: "",
+        desc: "LINE未設置記事・カバレッジの検知",
+        chips: ["「/coverage-check」", "→ 未設置リスト"] },
+      { name: "analyst", badge: "manual", time: "",
+        desc: "数字係エージェントの起動",
+        chips: ["「/analyst」"] },
+      { name: "gap-scan", badge: "dep", time: "",
+        desc: "GOAL逆算GAPスキャン。scanに置換済みで非推奨",
+        chips: ["削除候補 → scanへ統合"] },
+    ]
+  },
+  {
+    section: "コンテンツ制作",
+    items: [
+      { name: "craft", badge: "manual", time: "",
+        desc: "診断以外のコピー全部の入口。PU文言・リテンション・カルーセル・配信文。内部でリサーチ → 作成 → 品質ゲートを必ず通す",
+        chips: ["「PU作って」「配信文」「文言直して」", "→ 完成コピー + 画像"] },
+      { name: "diagnosis-generator", badge: "manual", time: "",
+        desc: "診断作成の唯一の入口。検索意図 → N1リサーチ → 質問フロー → 結果カード → 商材接続まで一気通貫",
+        chips: ["「診断作って」「この記事に診断」", "→ 診断設計書"] },
+      { name: "intent-dive", badge: "manual", time: "",
+        desc: "検索意図を深掘りして作るものの方向性を決める。候補比較 → 推奨1本",
+        chips: ["「何作る」「需要ある？」", "→ 方向性の推奨"] },
+      { name: "order", badge: "manual", time: "",
+        desc: "設計書をデザイナー向け依頼書に変換して発注準備を完了",
+        chips: ["「発注」「依頼書」", "→ 依頼書"] },
+      { name: "marketing-research", badge: "parts", time: "",
+        desc: "craft内部部品。ターゲットの本音・一次情報を多ソースから収集してエンパシーマップ化",
+        chips: ["craftから自動発動"] },
+      { name: "marketing-content-creation", badge: "parts", time: "",
+        desc: "craft内部部品。2秒理解・抽象ポエム禁止の品質基準でコピー作成",
+        chips: ["craftから自動発動"] },
+    ]
+  },
+  {
+    section: "リサーチ",
+    items: [
+      { name: "researcher", badge: "daily", time: "cron 10:07 でも起動",
+        desc: "新規チャネル（note/X/オーガニック）のリサーチ。収益化事例・導線設計・競合分析を蓄積",
+        chips: ["「リサーチ」「調べて」", "→ リサーチHub"] },
+      { name: "deep-research", badge: "manual", time: "",
+        desc: "多ソース・裏取り付きの深掘りリサーチハーネス。出典付きレポートを合成",
+        chips: ["「deep research」", "→ 引用付きレポート"] },
+    ]
+  },
+  {
+    section: "品質・組織運営",
+    items: [
+      { name: "quality-gate", badge: "parts", time: "",
+        desc: "renに報告・提案を出す直前の品質チェック。全項目クリアするまで報告禁止",
+        chips: ["報告前に自動発動", "→ 差し戻し or 報告許可"] },
+      { name: "mtg-facilitate", badge: "manual", time: "",
+        desc: "CMOとCIOの分析を壁打ちさせて対立・矛盾・補完関係を整理",
+        chips: ["CEO判断で自動発動"] },
+      { name: "ren-morning-agent", badge: "manual", time: "",
+        desc: "「おはよう」でGOAL・現状・GAP・今日の1本を整理。可逆な作業は実装まで進める",
+        chips: ["「おはよう」「朝会」「今日何する」"] },
+      { name: "knowledge-* 5本", badge: "parts", time: "",
+        desc: "アンチパターン / ファネル定義 / ジャンル知見 / プレイブック / 思考OS。関連タスクで自動参照される知識レイヤー",
+        chips: ["自動参照・手動読み込み不要"] },
+    ]
+  },
+  {
+    section: "ロール（人格エージェント）",
+    items: [
+      { name: "CEO", badge: "manual", time: "",
+        desc: "唯一の窓口。判断・ルーティング・品質ゲート。renのFB回数を極限まで減らすのがKPI",
+        chips: ["「/ceo」"] },
+      { name: "CIO", badge: "manual", time: "",
+        desc: "データサイエンティスト。データ取得・分析・検証",
+        chips: ["「/cio」"] },
+      { name: "CMO", badge: "manual", time: "",
+        desc: "マーケティング統括。施策設計・コピー・診断",
+        chips: ["「/cmo」"] },
+      { name: "CTO", badge: "manual", time: "",
+        desc: "テクニカルアーキテクト。インフラ・自動化基盤の管理",
+        chips: ["CEOから召喚"] },
+      { name: "diagnosis-designer", badge: "manual", time: "",
+        desc: "診断特化デザイナー。自社データ起点で診断を一気通貫設計",
+        chips: ["「/shindan」"] },
+      { name: "goal-coach", badge: "manual", time: "",
+        desc: "ゴール達成コーチ。目標が曖昧な時に問いで現状を構造化",
+        chips: ["目標設計・優先順位相談"] },
+    ]
+  },
+  {
+    section: "ダッシュボード・外部資産",
+    items: [
+      { name: "LINE Team Board", badge: "manual", time: "",
+        desc: "タスクの一元管理ボード（Streamlit）。AI側の内部進捗管理用",
+        chips: ["CLI: manage.py", "→ クラウドボード"] },
+      { name: "LINE売上ダッシュボード", badge: "manual", time: "",
+        desc: "売上・友だち・ファネル指標の可視化（Streamlit公開デプロイ）",
+        chips: ["データの正はここ"] },
+      { name: "リサーチHub", badge: "daily", time: "",
+        desc: "日次リサーチの成果HTML。武器庫picksと日次レポートを蓄積",
+        chips: ["日次リサーチャーが自動更新"] },
+      { name: "Winut操作マニュアル", badge: "manual", time: "",
+        desc: "Winut操作手順のドキュメントサイト（このPages内）",
+        chips: ["→ ../winut/"] },
+    ]
+  },
+];
+
+// ==== レンダリング ====
+const root = document.getElementById("catalog");
+let total = 0, autoN = 0, roleN = 0, depN = 0;
+
+CATALOG.forEach(sec => {
+  const s = document.createElement("section");
+  s.innerHTML = `<div class="sec-title">${sec.section}</div>`;
+  const grid = document.createElement("div");
+  grid.className = "grid";
+  sec.items.forEach(it => {
+    total++;
+    if (it.badge === "auto") autoN++;
+    if (sec.section.startsWith("ロール")) roleN++;
+    if (it.badge === "dep") depN++;
+    const b = BADGES[it.badge];
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <div class="card-head">
+        <span class="arrow">▶</span>
+        <span class="name">${it.name}</span>
+        <span class="badge" style="background:${b.color}">${b.label}${it.time ? " · " + it.time : ""}</span>
+      </div>
+      <div class="desc">${it.desc}</div>
+      <div class="chips">${it.chips.map(c => `<span class="chip">${c}</span>`).join("")}</div>`;
+    grid.appendChild(card);
+  });
+  s.appendChild(grid);
+  root.appendChild(s);
+});
+
+document.getElementById("st-total").textContent = total;
+document.getElementById("st-auto").textContent = autoN;
+document.getElementById("st-skill").textContent = total - autoN - roleN - 4; // ダッシュボード資産4を除く
+document.getElementById("st-role").textContent = roleN;
+document.getElementById("st-dep").textContent = depN;
+</script>
+</body>
+</html>
